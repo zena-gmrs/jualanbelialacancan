@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toko Gua</title>
+
+<style>
+body {margin:0;font-family:Arial;background:#f1f1f1;}
+
+.navbar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#ff5722;
+  color:white;
+  padding:10px 20px;
+}
+
+.search {
+  padding:5px;
+  border:none;
+  border-radius:5px;
+}
+
+.cart-btn {
+  cursor:pointer;
+  position:relative;
+}
+
+.badge {
+  position:absolute;
+  top:-5px;
+  right:-10px;
+  background:red;
+  color:white;
+  border-radius:50%;
+  padding:3px 7px;
+  font-size:12px;
+}
+
+.container {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:15px;
+  padding:15px;
+}
+
+.card {
+  background:white;
+  padding:10px;
+  border-radius:10px;
+  text-align:center;
+}
+
+button {
+  background:#ff5722;
+  color:white;
+  border:none;
+  padding:8px;
+  border-radius:5px;
+  cursor:pointer;
+}
+
+button:disabled {
+  background:gray;
+}
+
+.cart-box {
+  position:fixed;
+  right:-320px;
+  top:0;
+  width:320px;
+  height:100%;
+  background:white;
+  box-shadow:-5px 0 10px rgba(0,0,0,0.3);
+  padding:15px;
+  transition:0.3s;
+  overflow:auto;
+}
+
+.cart-box.active {right:0;}
+
+select {
+  width:100%;
+  padding:5px;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="navbar">
+  <div>Toko Gua 🛒</div>
+  <input class="search" placeholder="Cari produk..." onkeyup="search(this.value)">
+  <div class="cart-btn" onclick="toggleCart()">
+    🛒 <span class="badge" id="count">0</span>
+  </div>
+</div>
+
+<div class="container" id="products"></div>
+
+<div class="cart-box" id="cart">
+  <h3>Keranjang</h3>
+  <ul id="list"></ul>
+  <p>Total: Rp <span id="total">0</span></p>
+
+  <select id="payment">
+    <option value="Transfer Bank">Transfer Bank</option>
+    <option value="DANA">DANA</option>
+    <option value="OVO">OVO</option>
+    <option value="QRIS">QRIS</option>
+    <option value="COD">COD</option>
+  </select>
+
+  <button onclick="checkout()">Checkout</button>
+</div>
+
+<!-- POPUP QRIS -->
+<div id="qrisPopup" style="
+display:none;
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:rgba(0,0,0,0.7);
+justify-content:center;
+align-items:center;
+">
+  <div style="background:white;padding:20px;border-radius:10px;text-align:center;">
+    <h3>Scan QRIS buat bayar</h3>
+    <img src="qris.png" width="200"><br><br>
+    <button onclick="closeQR()">Tutup</button>
+  </div>
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("produk")) || [
+  {nama:"Produk A", harga:50000, stok:5},
+  {nama:"Produk B", harga:80000, stok:3},
+  {nama:"Produk C", harga:120000, stok:0},
+  {nama:"Produk D", harga:30000, stok:10}
+];
+
+let cart = [];
+
+function saveData(){
+  localStorage.setItem("produk", JSON.stringify(data));
+}
+
+function renderProducts(filter=""){
+  let container=document.getElementById("products");
+  container.innerHTML="";
+
+  data
+  .filter(p=>p.nama.toLowerCase().includes(filter.toLowerCase()))
+  .forEach((p,i)=>{
+    let div=document.createElement("div");
+    div.className="card";
+
+    div.innerHTML=`
+      <h4>${p.nama}</h4>
+      <p>Rp ${p.harga}</p>
+      <p>Stok: ${p.stok}</p>
+      ${
+        p.stok > 0
+        ? `<button onclick="add(${i})">Beli</button>`
+        : `<button disabled>Habis</button>`
+      }
+    `;
+    container.appendChild(div);
+  });
+}
+
+function add(index){
+  if(data[index].stok <= 0){
+    alert("stok habis goblok");
+    return;
+  }
+
+  data[index].stok--;
+  saveData();
+
+  cart.push({
+    nama: data[index].nama,
+    harga: data[index].harga
+  });
+
+  updateCart();
+  renderProducts();
+}
+
+function updateCart(){
+  let list=document.getElementById("list");
+  let total=0;
+  list.innerHTML="";
+
+  cart.forEach(item=>{
+    let li=document.createElement("li");
+    li.textContent=item.nama+" - "+item.harga;
+    list.appendChild(li);
+    total+=item.harga;
+  });
+
+  document.getElementById("total").textContent=total;
+  document.getElementById("count").textContent=cart.length;
+}
+
+function toggleCart(){
+  document.getElementById("cart").classList.toggle("active");
+}
+
+function search(val){
+  renderProducts(val);
+}
+
+function closeQR(){
+  document.getElementById("qrisPopup").style.display="none";
+}
+
+function checkout(){
+  if(cart.length==0){
+    alert("keranjang kosong bego");
+    return;
+  }
+
+  let metode = document.getElementById("payment").value;
+
+  if(metode=="QRIS"){
+    document.getElementById("qrisPopup").style.display="flex";
+  }
+  else if(metode=="COD"){
+    alert("Siap, bayar di tempat ya");
+  }
+  else {
+    let text="Order:%0A";
+    cart.forEach(item=>{
+      text+="- "+item.nama+" ("+item.harga+")%0A";
+    });
+
+    text+="%0ATotal:"+document.getElementById("total").textContent;
+    text+="%0AMetode:"+metode;
+
+    window.location.href="https://wa.me/628XXXXXXXXXX?text="+text;
+  }
+}
+
+renderProducts();
+</script>
+
+</body>
+</html>
