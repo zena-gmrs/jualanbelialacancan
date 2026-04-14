@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin</title>
+
+<style>
+body{font-family:Arial;background:#111;color:white;margin:0;}
+.container{padding:20px;}
+.card{background:#222;padding:10px;margin:10px;border-radius:10px;}
+input{padding:5px;margin:3px;}
+button{background:#ff5722;color:white;border:none;padding:5px;cursor:pointer;}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>Admin Panel 🔧</h2>
+
+  <input id="nama" placeholder="Nama produk">
+  <input id="harga" placeholder="Harga">
+  <input id="stok" placeholder="Stok">
+  <button onclick="add()">Tambah Produk</button>
+
+  <h3>List Produk</h3>
+  <div id="list"></div>
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("produk")) || [];
+
+function save(){
+  localStorage.setItem("produk", JSON.stringify(data));
+}
+
+function render(){
+  let box=document.getElementById("list");
+  box.innerHTML="";
+
+  data.forEach((p,i)=>{
+    box.innerHTML += `
+      <div class="card">
+        <b>${p.nama}</b><br>
+        Harga: ${p.harga}<br>
+        Stok: ${p.stok}<br>
+        <button onclick="restock(${i})">+1 Stok</button>
+      </div>
+    `;
+  });
+}
+
+function add(){
+  let n=document.getElementById("nama").value;
+  let h=document.getElementById("harga").value;
+  let s=document.getElementById("stok").value;
+
+  data.push({
+    nama:n,
+    harga:Number(h),
+    stok:Number(s)
+  });
+
+  save();
+  render();
+}
+
+function restock(i){
+  data[i].stok++;
+  save();
+  render();
+}
+
+render();
+</script>
+
+</body>
+</html>
